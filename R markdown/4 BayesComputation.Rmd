@@ -1,0 +1,279 @@
+---
+title: "Overview of Bayesian Computation"
+author: "Jim Albert"
+date: "July 2019"
+output:
+  beamer_presentation:
+    includes:
+      in_header: header_pagenrs.tex
+  ioslides_presentation: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE, warnings = FALSE)
+```
+## Overview of Bayesian modeling
+
+-- A statistical model:  $y$ is distributed according to a sampling density $f(y | \theta)$
+
+-- $\theta$ is unknown -- view it as random quantity
+
+-- Beliefs about the locations of $\theta$ described by a prior density $g(\theta)$
+
+## Observe data
+
+-- Learn about $\theta$ by computing the posterior density $g(\theta | y)$ (Bayes' theorem)
+
+-- All inferences (say interval estimates or decisions) based on the posterior density
+
+## Bayes computation problem 
+
+-- An arbitrary Bayesian model:  $y \sim f(y | \theta), \theta \sim g(\theta)$
+
+-- Interested in efficiently summarizing the posterior distribution 
+$$ g(\theta | y) \propto L(\theta) g(\theta | y)$$
+
+-- Want to summarize marginal posteriors of functions $h(\theta)$
+
+-- Want to predict future replicates from the model -- distribution $f(y_{rep} | y)$
+
+## Example:  Item response modeling
+
+-- 200 Students take a 33 question multiple choice math exam
+
+-- Observed response of $i$th student to $j$th question is $y_{ij}$ which is 1 (correct) or 0 (incorrect)
+
+-- Interested in modeling $P(y_{ij} = 1)$
+
+-- This probability depends on the student and also on the qualities of the item (question)
+
+## 2-parameter Item Response Model
+
+$$
+P(y_{ij} = 1) = \Phi\left(\alpha_j \theta_i - \gamma_j\right)
+$$
+
+where
+
+-- $\theta_i$ is the ability of the $i$th student
+
+-- $\alpha_j, \gamma_j$ are characteristics of the $j$th item
+
+-- called discrimination and difficulty parameters
+
+## Some sample item response curves
+
+![](irtplots2.png)
+
+## Priors for IRT models
+
+-- Assume that abilities $\theta_1, ..., \theta_n \sim N(0, 1)$
+
+-- Believe discrimination parameters $\alpha_j > 0$
+
+-- Relationships between the item parameters?
+
+## Clustering effects
+
+-- Perhaps the math exam covers three subjects (fractions, trig, etc)
+
+-- Believe that item parameters within a particular subject are positively correlated
+
+-- Like to "borrow strength" to get better estimates of discrimination for a particular item
+
+## This is relatively large Bayesian problem
+
+-- Have 200 ability estimates $\theta_1, ..., \theta_n$
+
+-- Each item has two associated parameters $(\alpha_j, \gamma_j)$ (total of 66 parameters)
+
+-- May have additional parameters from the prior that need to be estimated
+
+-- Total of 266 + parameters - large multivariate posterior distribution
+
+## But model can get more complicated
+
+-- Give the same exam for several years, or at different testing environments (schools and students)
+
+-- 5 different years, have 5 x 266 parameters
+
+-- Additional parameters that model similarity of the parameters across years
+
+## In the old days (pre 1990)
+
+-- Effort by Adrian Smith at University of Nottingham to develop efficient quadrature algorithms for integrating (Bayes 4 software)
+
+$$
+p(y) = \int g(\theta) d\theta
+$$
+-- General purpose, worked well for small number of parameters 
+
+-- Computationally expensive for large models  (number of posterior evaluations grows exponentially as function of number of parameters)
+
+## Normal approximation
+
+-- General result:
+
+$$
+g(\theta | y) \approx N(\hat \theta, V)
+$$
+where $\hat \theta$ is the posterior mode, $V$ negative of the inverse of the second derivative matrix of the log posterior evaluated at the mode
+
+-- Analogous to the approximate normal sampling distribution of the MLE
+
+## Simulating Posterior Distributions
+
+-- Suppose one can simulate $\theta^{(1)}, ..., \theta^{(m)}$ from the posterior $g(\theta | y)$
+
+-- Then one can summarize the posterior by summarize the simulated draws $\{\theta_j\}$
+
+-- For example, the posterior mean of $\theta_1$ is approximated by the sample mean of draws:
+$$
+\hat \theta_1  = \sum \theta_1^{(j)} / m
+$$
+-- Assumes that one can simulate directly from the posterior
+
+## Conjugate Problems
+
+-- For basic distributions (normal, binomial, Poisso, etc) choose a ``conjugate" prior
+
+-- Prior and posterior distributions are in the same family of distributions
+
+-- Can perform exact posterior calculations
+
+-- Can simulate from posterior using standard R functions (rnorm, rbeta, etc)
+
+## 1990 Markov Chain Monte Carlo 
+
+-- Gelfand and Smith (1990) introduced Gibbs sampling
+
+-- Set up a Markov Chain based on a set of conditional posterior distributions
+
+## Gibbs sampling:  Missing data approach
+
+-- View inference problem as a missing data problem
+
+-- Have a probability distribution (posterior) in terms of the missing data and the parameters
+
+-- Example:  regression with censored data
+
+## Censored data
+
+-- have regression model $y_i = N(\beta_0 + \beta_1 x_i, \sigma)$
+
+-- problem:  some of the $y_i$ are not observed -- instead observe $w_i  = \min(y_i, c)$, where $c$ is a censoring variable
+
+-- the likelihood function of the observed data is complicated
+
+## Gibbs sampling approach
+
+-- Add the missing data $y_i$ to the estimation problem
+
+-- want to learn about the distribution of $(y, \beta_0, \beta_1, \sigma)$
+
+-- can conveniently simulate from the (1) distribution of  the missing data $y$ conditional on the parameters ($\beta_0, \beta_1, \sigma)$ and (2) the parameters ($\beta_0, \beta_1, \sigma)$ conditional on the missing data
+
+## Metropolis Algorithm
+
+-- Provides a general way of setting up a Markov Chain
+
+-- Random walk algorithm -- suppose the current value is $\theta = \theta^c$
+
+1.  Propose a value $\theta^p = \theta^c + scale \times Z$
+
+2.  Compute an acceptance probability $P$ depending on $g(\theta^p)$ and $g(\theta^c)$
+
+3.  With probability $P$ move to proposal value $\theta^p$, otherwise stay at current value $\theta^c$
+
+## BUGS software
+
+-- General-purpose MCMC simulation-based for summarizing posteriors
+
+-- Write a script defining the Bayesian model
+
+-- Sampling based on Gibbs sampling and Metropolis algorithtms
+
+-- Good for multilevel modeling (see BUGS examples)
+
+-- BUGS, then WinBUGS, openBUGS, JAGS (works for both Windows and Macintosh)
+
+## Cautions with any MCMC Bayesian Software
+
+-- Need to perform some MCMC diagnosistics
+
+-- Concerned about burn-in (how long to achieve convergence), autocorrelation of simulated draws, Monte Carlo standard errors of summarizes of posterior of interest
+
+-- We will see some examples of problematic MCMC sampling
+
+## R Packages
+
+-- Many packages provide efficient MCMC sampling for specific Bayesian models
+
+-- `MCMCpack` provides compiled code for sampling for a variety of regression models
+
+-- For example, function `MCMCoprobit` simulates from the posterior of an ordered regression model using data augmentation/Gibbs sampling
+
+-- `coda` package provides a suite of diagnostic and graphics routines for MCMC output
+
+## Current Status of Bayesian Computing
+
+-- Advances in more efficient MCMC algorithms
+
+-- Want to develop more attractive interfaces for Bayesian computing for popular regression models
+
+-- Include generalized linear models and the corresponding mixed models
+
+-- STAN and its related R packages
+
+
+## Introduction to STAN
+
+- Interested in fitting multilevel generalized linear
+models
+- General-purpose software like JAGS doesn't work
+well
+- Need for a better sampler
+
+## Hamiltonian Monte Carlo (HMC)
+
+- HMC accelerates convergence to the stationary
+distribution by using the gradient of the log
+probability function
+
+- A parameter $\theta$ is viewed as a position of a fictional
+particle
+
+- Each iteration generates a random momentum and
+simulates path of participle with potential energy
+determined by the log probability function
+
+- Changes in position over time approximated using
+the leapfrog algorithm
+
+## Description of HMC in Doing Bayesian Data Analysis (DBDA)
+
+- In Metropolis random walk, proposal is symmetric
+about the current position
+
+- Inefficient method in the tails of the distribution
+
+- In HMC, proposal depends on current position --
+proposal is ``warped" in the direction where the
+posterior increases
+
+- Graph in DBDA illustrates this point
+
+## Graph from DBDA
+
+![](stan1.png)
+
+## Today's Focus
+
+-- normal approximations to posteriors (`LearnBayes` and `rethinking` packages)
+
+-- use of simulation to approximate posteriors and predictive distributions
+
+-- JAGS (Gibbs and Metropolis sampling)
+
+-- STAN (Hamiltonian sampling)

@@ -1,0 +1,158 @@
+---
+title: "Why Bayes?"
+author: "Jim Albert"
+date: "July 29, 2019"
+output:
+  beamer_presentation:
+    includes:
+      in_header: header_pagenrs.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, 
+                      message = FALSE, warnings = FALSE)
+```
+## Frequentist and Bayesian Paradigms
+
+**Traditional (frequentist) statistical inference** 
+
+-- evaluates methods on the frequency interpretation of probability
+
+-- sampling distributions
+
+-- 95% confidence interval means ...
+
+-- P(Type I error) = $\alpha$ means ...
+
+-- Don't have confidence in actual computation, but rather confidence in the method
+
+## **Bayesian inference**
+
+-- rests on the subjective notion of probability 
+
+-- probability is a degree of belief about unknown quantities
+
+-- I'll describe 10 attractive features of Bayes
+
+## Reason 1 -- One Recipe
+
+- Bayesian model consists of a sampling model and a prior
+
+- Bayes' rule -- Posterior is proportional to the Likelihood times Prior
+
+- Summarize posterior to perform inference
+
+- Conceptually it is simple
+
+## Reason 2 -- Conditional Inference
+
+- Bayes inference is conditional on the observed data
+
+- What do you learn about, say a proportion, based on data, say 10 successes in 30 trials?
+
+- Easy to update one's posterior sequentially
+
+- Contrast with frequentist sequential analysis
+
+## Reason 3 -- Can Include Prior Opinion
+
+- Often practitioners have opinions about parameters
+
+- Represent this knowledge with a prior
+
+- Knowledge can be vague -- parameters are ordered, positively associated, positive
+
+## Reason 4 -- Conclusions are Intuitive
+
+- Bayesian probability interval:  
+
+Prob(p in (0.2, 0.42)) = 0.90
+
+- Testing problem
+
+P($p \le 0.2$) = .10
+
+- Folks often interpret frequentist p-values as Bayesian probability of hypotheses
+
+## Reason 5 -- Two Types of Quantities in Bayes
+
+- Quantities are either observed or unobserved
+
+- Parameters, missing data, future observations are all the same (all unobserved)
+
+- Interested in probabilities of unobserved given observed
+
+## Reason 6 -- Easy to Learn About Derived Parameters
+
+- Suppose we fit a regression model
+$$
+y_i = x_i \beta + \epsilon_i
+$$
+- All inferences about $\beta$ based on the posterior distribution $g(\beta |y)$
+
+- Interested in learning about a function $h(\beta)$
+
+- Just a tranformation of $\beta$ -- especially easy to obtain the posterior of $h(\beta)$ by simulation-based inference
+
+## Example:  Learning about Career Trajectory
+
+-- Fit a quadratic regression model to Mickey Mantle's home run rates
+
+-- Interested in age $h(\beta_0, \beta_1, \beta_2)$ where the trajectory is peaked
+
+```{r, echo=FALSE, fig.height=4}
+require(LearnBayes)
+require(ggplot2)
+require(dplyr)
+ggplot(filter(sluggerdata, Player=="Mantle" ),
+       aes(Age, HR / AB)) + geom_point() +
+stat_smooth(method="lm", se=TRUE, fill=NA,
+            formula=y ~ poly(x, 3, raw=TRUE),colour="red") +
+  ylim(.025, .110)
+```
+
+## Reason 7 -- Can Handle Sparse Data
+
+- "the zero problem" -- want to learn about a proportion $p$ when you observe $y = 0$ successes in a sample of $n$
+
+- What is a reasonable estimate of $p$?
+
+- Instead of an ad-hoc correction, can construct a prior which indicates that p is strictly between 0 and 1
+
+## Reason 8 -- Can Move Away from Normal Distributions
+
+- Many of the methods in an introductory statistics class are based on normal sampling
+
+- What is so special about normal sampling?
+
+- Bayes allows one to be more flexible in one's modeling (say, allow for outliers using a t distribution)
+
+## Reason 9 -- Multilevel Modeling
+
+- Common to fit the same regression model to several subgroups
+
+- How to effectively combine the regressions?
+
+- How does academic achievement in college depend on gender, major, high school grades, ACT score?
+
+- Fit a regression model for several schools?
+
+- Convenient to construct a multilevel model from a Bayesian perspective
+
+## Reason 10 -- Advances in Bayesian Computation
+
+- More people are doing Bayes in applied work due to ease of computation
+
+- Markov Chain Monte Carlo algorithms are becoming more accessible
+
+- Illustrate using Bayesian alternatives to workhouse R functions `lm`, `glm`, `lmer`, etc.
+
+## Exercises
+
+Questions for discussion:
+
+1.  These "10 reasons" were not ranked.  From your perspective what are the top 3 reasons to go Bayes?
+
+2.  David Moore (famous statistics educator) thought that we should not teach Bayes in introductory statistics since Bayes is not popular in applied statistics.  Do you agree?
+
+3.  What are the challenges, in your mind, in performing a Bayes analysis?

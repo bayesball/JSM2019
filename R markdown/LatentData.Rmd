@@ -1,0 +1,186 @@
+---
+title: "Latent Data Modeling"
+author: "Jim Albert"
+date: "July 2019"
+output:
+  beamer_presentation:
+    includes:
+      in_header: header_pagenrs.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE, warnings = FALSE)
+```
+
+## Scores on a 20 Question T/F Test
+
+```{r}
+library(tidyverse)
+ScoreData <- read_csv("ScoreData.csv")
+head(ScoreData)
+```
+
+## Graph Scores
+
+```{r,  echo = FALSE}
+library(ggrepel)
+ggplot(ScoreData, aes(x=Person, y=Score)) +
+  geom_point(size=3) +
+  ylim(5, 20) +
+  labs(x = "Person Index", y = "Score") +
+  theme_grey(base_size = 20, base_family = "") +
+  geom_text_repel(aes(label=Person), size = 6)
+```
+
+## Latent Class Model
+
+-- Assume there are two groups of students -- the "guessers" and the "studiers"
+
+-- Probability of getting question correct for the two types are $p_1$ (guessers) and $p_0$ (studiers)
+
+-- Group identity of student $i$ is $z_i = 1$ (guesser) or
+$z_i = 0$ (studier)
+
+-- Group identities of the $n$ students, $z_1, ..., z_n$ are unknown
+
+-- Assume $P(z_i = 1) = \pi$
+
+## Complete Model
+
+- Write parameter and sampling distribution as
+
+$$
+[\pi, p_1, p_0] \, [z | \pi] \,  [y | z, p_1, p_0]
+$$
+
+- Simulate data from model:
+
+- Using prior, simulate values of $\pi, p_1, p_0$
+
+- Simulate group identities $z_1, ..., z_n$
+
+- If $z_i = 1$, simulate score $y_i \sim Bin(20, p_1)$
+
+- If $z_i = 0$, simulate score $y_i \sim Bin(20, p_0)$
+
+
+## Prior
+
+-- Have to specify priors on $(p_1, p_0, \pi)$
+
+-- Believe first group is guessing, so let $p_1$ be uniform on the interval (0.4, 0.6)
+
+-- Let $p_0$ be uniform on ($p_1, 1$) -- this reflects belief that $p_0 > p_1$
+
+-- $\pi$ is proportion of guessers in population -- let $\pi$ be uniform(0, 1)
+
+
+## JAGS script
+
+```{r}
+modelString<-"
+model {
+# data is binomial with rate given by person's group assignment
+for (i in 1:N){
+theta[i] <- equals(z[i], 1) * p1 + equals(z[i], 0) * p0
+y[i] ~ dbin(theta[i], m)
+}
+# each person belongs to one of two latent classes
+for (i in 1:N){
+z[i] ~ dbern(q)
+}
+# first class is random guessing
+p1 ~ dbeta(1, 1) T(0.4, 0.6)
+# second class has unknown higher correct rate
+p0 ~ dbeta(1,1) T(p1, 1)
+q ~ dbeta(1, 1)
+}
+"
+```
+
+## Set up Data
+
+- $N$ is number of students, $m$ is number of questions on exam, $y$ are the scores
+
+```{r}
+y <- ScoreData$Score
+N <- length(y)
+the_data <- list("y" = y, "N" = N, "m" = 20)
+```
+
+## Initialization Function
+
+```{r}
+initsfunction <- function(chain){
+  .RNG.seed <- c(1,2)[chain]
+  .RNG.name <- c("base::Super-Duper",
+                 "base::Wichmann-Hill")[chain]
+  return(list(.RNG.seed=.RNG.seed,
+              .RNG.name=.RNG.name))
+}
+```
+
+## JAGS Run
+
+```{r}
+library(runjags)
+posterior <- run.jags(modelString,
+                      n.chains = 1,
+                      data = the_data,
+                      monitor = c("z", "p1", "p0", "q"),
+                      adapt = 1000,
+                      burnin = 20000,
+                      sample = 5000,
+                      thin = 5,
+                      inits = initsfunction,
+                      silent.jags = TRUE
+                     )
+```
+
+## Posterior probs that $z_i = 1$ (guessing)
+
+```{r, echo = FALSE}
+library(coda)
+post <- as.mcmc(posterior)
+post_means  <- data.frame(Index = 1:30,
+                          Mean = apply(post, 2, mean)[1:30])
+ggplot(post_means, aes(Index, Mean)) +
+  geom_point(size = 3) +
+  theme_grey(base_size = 20, base_family = "")
+```
+
+## Posteriors of $(\pi, p_1, p_0)$
+
+```{r, echo = FALSE}
+post <- as.data.frame(post)
+post %>% select(p1, p0, q) %>%
+  gather(Type, Value) -> post2
+library(ggridges)
+ggplot(post2, aes(x = Value, y = Type)) +
+  geom_density_ridges() +
+  theme_grey(base_size = 20, base_family = "")
+```
+
+## What Have We Learned?
+
+-- Proportion of guessers is about 30-40\%
+
+-- Probability "guesser" gets question correct is about 55\%, probability "knower" gets question correct is 85\%
+
+-- All but two students are clearly classified into one of two groups
+
+## Exercise:  Back to Federalist Paper Study
+
+-- The main question posed by Mosteller and Wallace was to identify author of several "disputed" Federalist papers.
+
+-- Classification of $i$th paper is either $z_i = 1$ (Hamilton) or $z_i = 0$ (Madison)
+
+-- For most of the papers,  the $z_i$ (author classifications) are known; for disputed authorship papers, the $z_i$ values are unknown
+
+-- Given a value of $z_i$, number of occurrences of particular word $y_i$ is Negative Binomial($\alpha, \beta$) where parameter values depend on $z_i$
+
+-- How could one revise this JAGS code to fit the latent data model in this situation?
+
+
+
