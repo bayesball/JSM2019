@@ -163,7 +163,7 @@ The exchangeable model:
 
     mcmc_areas(post, pars = "sd_name__Intercept")
 
-![](EfronMorris_files/figure-markdown_strict/unnamed-chunk-5-1.png)
+![](../EfronMorris_files/figure-markdown_strict/unnamed-chunk-5-1.png)
 
     (estimates <- plogis(coef(fit)$name[, 1, 1]))
 
@@ -230,4 +230,4 @@ The exchangeable model:
     shrinkage_plot(S) +
       increasefont()
 
-![](EfronMorris_files/figure-markdown_strict/unnamed-chunk-11-1.png)
+![](../EfronMorris_files/figure-markdown_strict/unnamed-chunk-11-1.png)
