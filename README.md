@@ -48,6 +48,8 @@ R Packages:
 
 • rethinking, version 1.59, available on github
 
+• brms, version 2.9.0, available on CRAN and github
+
 • rstan, version 2.18.2, available on CRAN
 
 • rstanarm, version 2.18.2, available on CRAN
